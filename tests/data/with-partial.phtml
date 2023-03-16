@@ -1,0 +1,7 @@
+<?php $layout = 'default'; $this->push_stack('header', '/app.css'); ?>
+<?=$this->render_partial('pre', ['name'=>'another'])?>
+<div>hello
+    <?= $name ?>
+</div>
+<?php if($list??false){?><?=$this->render_partial('ul', ['item'=>$item])?>
+<?php } ?>

@@ -1,0 +1,6 @@
+<body>
+    <?php if ($context['stack']['header'] ?? false) foreach ($context['stack']['header'] as $header) : ?>
+        <div><?= $header ?></div>
+    <?php endforeach ?>
+    <?= $context['content'] ?>
+</body>
