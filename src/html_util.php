@@ -17,7 +17,7 @@ class html {
             }
             return $res . " " . $item;
         }, "");
-        return sprintf('<%s%s></%s>', $tag, $attrs, $tag);
+        return sprintf('<%s%s></%s>', $name, $attrs, $name);
     }
 
     public static function script_tag($src, $attrs = "", $cb = null) {
