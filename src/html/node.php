@@ -25,6 +25,7 @@ class node {
         $this->class_add($class);
     }
 
+    public ?self $root = null;
     public array $class = [];
     public array $children = [];
     public array $refs = [];
@@ -37,7 +38,7 @@ class node {
 
     public function set_by_token(token $token, $value): self {
         match ($token) {
-            token::class => $this->class_add($value),
+            token::cls => $this->class_add($value),
             token::name => $this->tagname($value),
             token::id => $this->id($value),
             token::attr, token::attr_end => $this->attr(...explode('=', $value)),
@@ -51,96 +52,17 @@ class node {
         return abbreviation_parser::parse($definition);
     }
 
-    public static function xxparse_definition(string $definition): self {
-        $parts = soup::words($definition);
-        $tag = [];
-        $current_node = $root = new node('');
-        $mode = 'sibling';
-        $multi = $ref = null;
-        while ($part = array_shift($parts)) {
-            if (in_array($part[0], ['>', '+', '^'])) {
-
-                // when multiple ^ ups, we create node only once
-                if ($tag) {
-                    $node = self::make_node($tag);
-                    dbg("new tag", $tag, $node, $mode);
-                    if ($ref) {
-                        $root->ref($ref, $node);
-                    }
-                    if ($mode == 'sibling') {
-                        $current_node->insert_after($node);
-                    } else {
-                        $current_node->insert_append($node);
-                    }
-                    dbg("++end");
-                    $current_node = $node;
-                }
-                if ($part[0] == '>') {
-                    $mode = 'child';
-                } else {
-                    $mode = 'sibling';
-                }
-                $tag = [];
-                $multi = $ref = null;
-                if ($part[0] == '^') {
-                    $current_node = $current_node->parent();
-                }
-                $part = substr($part, 1);
-                if (!$part) continue;
-            }
-            // dbg("++++ tag", $tag);
-            if ($part[0] == '^') {
-                $current_node = $current_node->parent();
-                while ($part = substr($part, 1)) {
-                    if ($part[0] == '^') {
-                        $current_node = $current_node->parent();
-                    } else {
-                        break;
-                    }
-                }
-                if (!$part) continue;
-            }
-            if ($part[0] == '*') {
-                $multi = substr($part, 1);
-                continue;
-            }
-            if ($part[0] == '`') {
-                $ref = substr($part, 1);
-                continue;
-            }
-            $tag[] = $part;
+    public function check_if_textnode() {
+        // return;
+        if (
+            $this->tagname == '' && count($this->children) == 1
+            && is_string($this->children[0])
+            && !$this->class && !$this->id
+            && !$this->attrs  && !$this->data
+        ) {
+        } else {
+            if (!$this->tagname) $this->tagname = 'div';
         }
-        if ($tag) {
-            $node = self::make_node($tag);
-            if ($mode == 'sibling') {
-                $current_node->insert_after($node);
-            } else {
-                $current_node->insert_append($node);
-            }
-            $current_node = $node;
-        }
-        return $root;
-    }
-
-    public static function make_node(array $parts): self {
-        $tag = ['tagname' => 'div', 'id' => "", 'class' => [], 'attrs' => [], 'children' => null];
-        if ($parts[0][0] != '#' && $parts[0][0] != '.') {
-            $tag['tagname'] = array_shift($parts);
-        }
-        $attrs = [];
-        foreach ($parts as $part) {
-            match ($part[0]) {
-                '#' => $tag['id'] = ltrim($part, '#'),
-                '.' => $tag['class'][] = ltrim($part, '.'),
-                '[' => $attrs[] = self::attr_from_string($part),
-                '{' => $tag['children'] = substr($part, 1, strlen($part) - 2),
-                default => $attrs[] = $part
-            };
-        }
-        foreach ($attrs as $attr) {
-            $tag['attrs'][$attr[0]] = $attr[1];
-        }
-        return new self(...$tag);
     }
 
     public static function attr_from_string(string $attr_val): array {
@@ -185,21 +107,37 @@ class node {
     }
     public function insert_prepend(self $node): self {
         $node->parent = &$this;
+        $node->root = &$this->root;
         array_unshift($this->children, $node);
         return $this;
     }
     public function insert_append(self $node): self {
         $node->parent = &$this;
+        $node->root = &$this->root;
         array_push($this->children, $node);
+        return $this;
+    }
+    public function replace(self $old, self $node): self {
+        foreach ($this->children as $idx => $c) {
+            if ($c == $old) {
+                $node->parent = &$this;
+                $node->root = &$this->root;
+                $this->children[$idx] = $node;
+                break;
+            }
+        }
         return $this;
     }
 
     public function wrap(string|array $tags): self {
         if (is_string($tags)) {
-            $tags = explode(">", $tags);
-            $this->wrap = array_map(fn ($t) => tag::new($t), $tags);
+            $tags = abbreviation_parser::parse($tags, false);
+            $parent = $this->parent;
+            $tags->insert_append($this);
+            $parent->replace($this, $tags->root);
+            //            $this->wrap = array_map(fn ($t) => tag::new($t), $tags);
         } else {
-            $this->wrap = $tags;
+            //            $this->wrap = $tags;
         }
 
         return $this;
@@ -211,8 +149,13 @@ class node {
             $content = [$content];
         }
         // dbg("++ new content", $content);
-        if ($content) {
-            $this->children = array_merge($this->children, $content);
+        if ($content) foreach ($content as $c) {
+            if (is_object($c)) {
+                $this->insert_append($c);
+            } else {
+                array_push($this->children, $c);
+            }
+            // $this->children = array_merge($this->children, $content);
         }
         // dbg("merged children", $this->children);
         return $this;
