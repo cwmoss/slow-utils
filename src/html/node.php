@@ -2,6 +2,7 @@
 
 namespace slow\util\html;
 
+use slow\util\text;
 
 
 class node {
@@ -29,6 +30,8 @@ class node {
     public array $class = [];
     public array $children = [];
     public array $refs = [];
+    public array $tpl_attr = [];
+    public array $tpl_text = [];
 
     public static function new(string $definition, string|tag|array|null $content = null): self {
         $tag = self::parse_definition($definition);
@@ -80,6 +83,10 @@ class node {
 
     public function get(string $refname) {
         return $this->refs[$refname];
+    }
+
+    public function root() {
+        return $this->root ?: $this;
     }
 
     public function parent() {
@@ -269,7 +276,7 @@ class node {
     }
 
     public function open(): string {
-        return self::tag_open($this->tagname, $this->to_attrs());
+        return self::tag_open($this->tagname, $this->to_attrs(), $this->root());
     }
 
     public function close(): string {
@@ -280,10 +287,15 @@ class node {
         return htmlspecialchars($attr);
     }
 
-    public static function tag_open(string $name, array $attrs): string {
+    public static function tag_open(string $name, array $attrs, node $root): string {
         if (!$name) return "";
         $attr = [];
         foreach ($attrs as $aname => $avalue) {
+            if ($aname[0] == ':') {
+                $aname = strtolower(substr($aname, 1));
+                $root->tpl_attr[] = [$aname, $avalue];
+                $avalue = '{__a__' . $avalue . '}';
+            }
             if (is_bool($avalue)) {
                 if ($avalue) {
                     $attr[] = $aname;
@@ -310,7 +322,7 @@ class node {
     }
 
     public static function tag(string $name, array $attrs, string $content = ""): string {
-        $start = self::tag_open($name, $attrs);
+        $start = self::tag_open($name, $attrs, $this->root());
         return sprintf('%s%s%s', $start, $content, self::tag_close($name));
     }
 
@@ -318,6 +330,30 @@ class node {
         return join("", array_map(fn ($el) => (string) $el, $elements));
     }
 
+    public function template() {
+        $tpl = $this->render();
+        $attrs = $this->root()->tpl_attr;
+        return function (array $data) use ($tpl, $attrs) {
+            $repl = [];
+            foreach ($attrs as [$name, $attr]) {
+                if (is_bool($data[$attr])) {
+                    if ($data[$attr]) {
+                        $repl[$name . '="{__a__' . $attr . '}"'] = $name;
+                    } else {
+                        $repl[$name . '="{__a__' . $attr . '}"'] = "";
+                    }
+                } else {
+                    $repl['{__a__' . $attr . '}'] = self::h($data[$attr]);
+                }
+            }
+            foreach ($data as $k => $v) {
+                $repl['{' . strtolower($k) . '}'] = $v;
+            }
+            print_r($repl);
+            $text = str_replace(array_keys($repl), $repl, $tpl);
+            return $text;
+        };
+    }
     public function render(): string {
         $html = "";
         $html .=
