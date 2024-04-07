@@ -26,41 +26,31 @@ class abbreviation_parser {
         foreach ($chars as $char) {
             $t = token::tryFrom($char);
             if ($t) {
-                if ($in_text && $t != token::text_end) {
-                    $word .= $char;
-                    continue;
-                } elseif ($in_text) {
-                    self::handle_node($root, $tag, $type, $word, $ref);
-                    $in_text = false;
-                    $word = "";
+                if ($in_text) {
+                    if ($t != token::text_end) {
+                        $word .= $char;
+                    } else {
+                        self::handle_word($root, $tag, $type, $word, $ref);
+                        $in_text = false;
+                    }
                     continue;
                 }
-                if ($in_attr && $t != token::attr_end) {
-                    $word .= $char;
-                    continue;
-                } elseif ($in_attr) {
-                    self::handle_node($root, $tag, $type, $word, $ref);
-                    $in_attr = false;
-                    $word = "";
+                if ($in_attr) {
+                    if ($t != token::attr_end) {
+                        $word .= $char;
+                    } else {
+                        self::handle_word($root, $tag, $type, $word, $ref);
+                        $in_attr = false;
+                    }
                     continue;
                 }
 
                 if ($t->is_end()) {
                     // dbg("++ end", $char, $word, $type, $tag);
-                    self::handle_node($root, $tag, $type, $word, $ref);
+                    self::handle_word($root, $tag, $type, $word, $ref);
                     if ($tag) {
                         $tag->check_if_textnode();
-                        // dbg("new tag", $tag, $mode);
-                        if ($ref) {
-                            $root->ref($ref, $tag);
-                        }
-                        if ($mode == 'sibling') {
-                            $current_node->insert_after($tag);
-                        } else {
-                            $current_node->insert_append($tag);
-                        }
-                        // dbg("++end");
-                        $current_node = $tag;
+                        self::handle_insert($root, $current_node, $tag, $mode, $ref);
                     }
                     $mode = $t->next_insert_mode();
                     $tag = null;
@@ -69,7 +59,6 @@ class abbreviation_parser {
                         $current_node = $current_node->parent();
                     }
                     $type = token::name;
-                    $word = "";
                     $in_attr = $in_text = false;
                     continue;
                 }
@@ -81,7 +70,7 @@ class abbreviation_parser {
                 } else {
                     if ($t == token::attr) $in_attr = true;
                     if ($t == token::text) $in_text = true;
-                    self::handle_node($root, $tag, $type, $word, $ref);
+                    self::handle_word($root, $tag, $type, $word, $ref);
                 }
                 $type = $t;
                 $word = "";
@@ -92,28 +81,37 @@ class abbreviation_parser {
         // dbg("++status-end", $word, $tag, $type);
         if ($tag || $word) {
             dbg("last word", $word);
-            self::handle_node($root, $tag, $type, $word, $ref);
-
-            if ($mode == 'sibling') {
-                $current_node->insert_after($tag);
-            } else {
-                dbg("++ last", $tag);
-                $current_node->insert_append($tag);
-            }
+            self::handle_word($root, $tag, $type, $word, $ref);
+            self::handle_insert($root, $current_node, $tag, $mode, $ref);
         }
         if ($return_root) return $root;
-        else return $tag;
+        else return $current_node;
     }
 
-    public static function handle_node(node $root, ?node &$node, token $type, string $word, ?string &$ref) {
+    public static function handle_insert(node $root, node &$current_node, node $tag, string $mode, ?string &$ref) {
+        $tag->check_if_textnode();
+        if ($ref) {
+            $root->ref($ref, $tag);
+        }
+        if ($mode == 'sibling') {
+            $current_node->insert_after($tag);
+        } else {
+            dbg("++ last", $tag);
+            $current_node->insert_append($tag);
+        }
+        $current_node = $tag;
+    }
+    public static function handle_word(node $root, ?node &$node, token $type, string &$word, ?string &$ref) {
         if ($type != token::text) $word = trim($word);
         if (!$word) return;
 
         if (!$node) $node = new node('');
         if ($type == token::ref) {
             $ref = $word;
+            $word = "";
             return;
         }
         $node->set_by_token($type, $word);
+        $word = "";
     }
 }

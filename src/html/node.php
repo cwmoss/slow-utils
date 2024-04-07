@@ -61,6 +61,7 @@ class node {
             && !$this->attrs  && !$this->data
         ) {
         } else {
+
             if (!$this->tagname) $this->tagname = 'div';
         }
     }
@@ -107,13 +108,21 @@ class node {
     }
     public function insert_prepend(self $node): self {
         $node->parent = &$this;
-        $node->root = &$this->root;
+        if ($this->root) {
+            $node->root = &$this->root;
+        } else {
+            $node->root = &$this;
+        }
         array_unshift($this->children, $node);
         return $this;
     }
     public function insert_append(self $node): self {
         $node->parent = &$this;
-        $node->root = &$this->root;
+        if ($this->root) {
+            $node->root = &$this->root;
+        } else {
+            $node->root = &$this;
+        }
         array_push($this->children, $node);
         return $this;
     }
@@ -132,6 +141,10 @@ class node {
     public function wrap(string|array $tags): self {
         if (is_string($tags)) {
             $tags = abbreviation_parser::parse($tags, false);
+            print_r($tags);
+            print $tags;
+            print "--";
+            print $tags->parent();
             $parent = $this->parent;
             $tags->insert_append($this);
             $parent->replace($this, $tags->root);
