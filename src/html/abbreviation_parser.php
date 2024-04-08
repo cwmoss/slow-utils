@@ -22,25 +22,35 @@ class abbreviation_parser {
         $current_node = $root = new node('');
         $mode = 'sibling';
         $multi = $ref = null;
-        $in_attr = $in_text = false;
+        $in_attr = $in_text = 0;
         foreach ($chars as $char) {
             $t = token::tryFrom($char);
             if ($t) {
                 if ($in_text) {
                     if ($t != token::text_end) {
                         $word .= $char;
+                        if ($t == token::text) $in_text++;
                     } else {
-                        self::handle_word($root, $tag, $type, $word, $ref);
-                        $in_text = false;
+                        $in_text--;
+                        if ($in_text) {
+                            $word .= $char;
+                        } else {
+                            self::handle_word($root, $tag, $type, $word, $ref);
+                        }
                     }
                     continue;
                 }
                 if ($in_attr) {
                     if ($t != token::attr_end) {
                         $word .= $char;
+                        if ($t == token::attr) $in_attr++;
                     } else {
-                        self::handle_word($root, $tag, $type, $word, $ref);
-                        $in_attr = false;
+                        $in_attr--;
+                        if ($in_attr) {
+                            $word .= $char;
+                        } else {
+                            self::handle_word($root, $tag, $type, $word, $ref);
+                        }
                     }
                     continue;
                 }
@@ -59,7 +69,7 @@ class abbreviation_parser {
                         $current_node = $current_node->parent();
                     }
                     $type = token::name;
-                    $in_attr = $in_text = false;
+                    $in_attr = $in_text = 0;
                     continue;
                 }
                 // $word = trim($word);
@@ -68,8 +78,8 @@ class abbreviation_parser {
                 } elseif ($type == token::ref) {
                     $ref = $word;
                 } else {
-                    if ($t == token::attr) $in_attr = true;
-                    if ($t == token::text) $in_text = true;
+                    if ($t == token::attr) $in_attr++;
+                    if ($t == token::text) $in_text++;
                     self::handle_word($root, $tag, $type, $word, $ref);
                 }
                 $type = $t;

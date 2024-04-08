@@ -35,16 +35,23 @@ class node {
 
     public static function new(string $definition, string|tag|array|null $content = null): self {
         $tag = self::parse_definition($definition);
+        if ($content !== null) {
+            $tag->content($content);
+        }
         // return new self(...$tag, content: $content);
         return $tag;
     }
 
     public function set_by_token(token $token, $value): self {
+        if ($token == token::attr) {
+            $value = soup::words($value);
+            dbg("++ set attr", $value);
+        }
         match ($token) {
             token::cls => $this->class_add($value),
             token::name => $this->tagname($value),
             token::id => $this->id($value),
-            token::attr, token::attr_end => $this->attr(...explode('=', $value)),
+            token::attr, token::attr_end => array_map(fn ($v) => $this->attr(...explode('=', $v)), $value),
             token::text, token::text_end => $this->children[] = $value,
             default => throw new \Exception("dont know about: " . $token->value)
         };
@@ -52,7 +59,7 @@ class node {
     }
 
     public static function parse_definition(string $definition): self {
-        return abbreviation_parser::parse($definition);
+        return abbreviation_parser::parse($definition, false);
     }
 
     public function check_if_textnode() {
@@ -82,7 +89,7 @@ class node {
     }
 
     public function get(string $refname) {
-        return $this->refs[$refname];
+        return $this->root()->refs[$refname];
     }
 
     public function root() {
@@ -148,10 +155,6 @@ class node {
     public function wrap(string|array $tags): self {
         if (is_string($tags)) {
             $tags = abbreviation_parser::parse($tags, false);
-            print_r($tags);
-            print $tags;
-            print "--";
-            print $tags->parent();
             $parent = $this->parent;
             $tags->insert_append($this);
             $parent->replace($this, $tags->root);
@@ -263,8 +266,8 @@ class node {
         return $this;
     }
 
-    function each(string $property, $function): static {
-        foreach ($this->$property as $prop) {
+    function each($function): static {
+        foreach ($this->children as $prop) {
             $function($prop);
         }
         return $this;
@@ -293,15 +296,17 @@ class node {
         foreach ($attrs as $aname => $avalue) {
             if ($aname[0] == ':') {
                 $aname = strtolower(substr($aname, 1));
-                $root->tpl_attr[] = [$aname, $avalue];
-                $avalue = '{__a__' . $avalue . '}';
+                $defer = new defer_render($aname, $avalue);
+                $root->tpl_attr[] = $defer;
+                $attr[] = (string) $defer;
+                continue;
             }
             if (is_bool($avalue)) {
                 if ($avalue) {
                     $attr[] = $aname;
                 }
             } else {
-                $attr[] = sprintf('%s="%s"', $aname, self::h($avalue));
+                $attr[] = sprintf(' %s="%s"', $aname, self::h($avalue));
             }
         }
         /*
@@ -312,7 +317,7 @@ class node {
             return $res . " " . $item;
         }, "");
         */
-        return sprintf('<%s%s%s>', $name, ($attr ? ' ' : ''), join(" ", $attr));
+        return sprintf('<%s%s>', $name, join("", $attr));
     }
 
     public static function tag_close(string $name): string {
@@ -321,8 +326,8 @@ class node {
         return sprintf('</%s>', $name);
     }
 
-    public static function tag(string $name, array $attrs, string $content = ""): string {
-        $start = self::tag_open($name, $attrs, $this->root());
+    public static function tag(string $name, array $attrs, string $content = "", node $root): string {
+        $start = self::tag_open($name, $attrs, $root);
         return sprintf('%s%s%s', $start, $content, self::tag_close($name));
     }
 
@@ -331,20 +336,14 @@ class node {
     }
 
     public function template() {
-        $tpl = $this->render();
+        $tpl = $this->root()->render();
         $attrs = $this->root()->tpl_attr;
         return function (array $data) use ($tpl, $attrs) {
             $repl = [];
-            foreach ($attrs as [$name, $attr]) {
-                if (is_bool($data[$attr])) {
-                    if ($data[$attr]) {
-                        $repl[$name . '="{__a__' . $attr . '}"'] = $name;
-                    } else {
-                        $repl[$name . '="{__a__' . $attr . '}"'] = "";
-                    }
-                } else {
-                    $repl['{__a__' . $attr . '}'] = self::h($data[$attr]);
-                }
+            foreach ($attrs as $defer) {
+                dbg("++defer", $defer->var_name);
+                [$k, $v] = $defer->replacement($data[$defer->var_name] ?? null);
+                $repl[$k] = $v;
             }
             foreach ($data as $k => $v) {
                 $repl['{' . strtolower($k) . '}'] = $v;
@@ -353,6 +352,9 @@ class node {
             $text = str_replace(array_keys($repl), $repl, $tpl);
             return $text;
         };
+    }
+    public function render_doc(): string {
+        return $this->root()->render();
     }
     public function render(): string {
         $html = "";
