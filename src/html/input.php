@@ -8,6 +8,7 @@ general attrs:
 
 autocapitalize, autocomplete, autofocus, disabled, placeholder, readonly, required
 
+
 */
 
 class input {
