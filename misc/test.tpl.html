@@ -1,0 +1,176 @@
+@@@ general @@@
+{if wrap}<div class="{wrap}">{/if wrap}
+<div class="frow {row_class} {if error}has-error{/if error}">
+   <div class="col-12 form-group">
+   	{if label}
+     <label for="{id}"{if label_id} id="{label_id}"{/if label_id} class="control-label {if hintclass}has-hint{/if hintclass}">
+      	{label}
+      </label>
+      {/if label}
+      {if input_addon}<div class="input-group">{/if input_addon}
+		{form}
+		{if append_field}{append_field}{/if append_field}
+		{if input_addon}<div class="input-group-addon">{input_addon}</div></div>{/if input_addon}
+		{append_html}
+      {if hint}<small class="form-text text-muted">{hint}</small>{/if hint}
+      {if wrap_error}<div class="{wrap_error}">{/if wrap_error}
+ 
+      	{if error}<label id="{id}-error" class="inputerror" for="{id}">{error}</label>{/if error}
+    
+      {if wrap_error}</div>{/if wrap_error}
+   </div>
+</div>
+{if wrap}</div>{/if wrap}
+
+@@@ euro @@@
+
+<div class="{row_class} {if error}has-error{/if error}">
+   <div class="{col_class} form-group">
+    {if label}
+     <label for="{id}"{if label_id} id="{label_id}"{/if label_id} class="control-label {if hintclass}has-hint{/if hintclass}" >
+        {label}{if tooltip}<span data-toggle="tooltip" title="{tooltip}"></span>{/if tooltip}
+      </label>
+      {/if label}
+      <div class="input-group euro">
+        {form}
+        <div class="input-group-append">
+          <span class="input-group-text">EUR</span>
+        </div>
+        {if hint}<small class="form-text text-muted">{hint}</small>{/if hint}
+      </div>
+        {if wrap_error}<div class="{wrap_error}">{/if wrap_error}
+ 
+        {if error}<label id="{id}-error" class="inputerror" for="{id}">{error}</label>{/if error}
+    
+      {if wrap_error}</div>{/if wrap_error}
+   </div>
+</div>
+
+@@@ rowdd @@@
+<div class="form-row f-display">
+   <label for="{name}" class="col-12 col-sm-3 control-label">{label} {if tooltip}<span data-toggle="tooltip" title="{tooltip}"></span>{/if tooltip}</label>
+   <div id="{name}" class="col-12 col-sm-9"><p class="form-control-static">{value}</p></div>
+   <div class="col-msg">{msg}</div>
+</div>
+
+@@@ radio @@@
+
+{if wrap}<div class="{wrap}">{/if wrap}
+<div class="{row_class} {if error}has-error{/if error}">
+   <div class="col-12 form-group">
+    {if label}
+     <label for="{id}"{if label_id} id="{label_id}"{/if label_id} class="control-label label-radio-group {if hintclass}has-hint{/if hintclass}">
+        {label}
+      </label>
+      {/if label}
+      {form}
+        {if wrap_error}<div class="{wrap_error}">{/if wrap_error}
+        {if error}<label id="{id}-error" class="inputerror" for="{id}">{error}</label>{/if error}
+        {if wrap_error}</div>{/if wrap_error}
+   </div>
+</div>
+{if wrap}</div>{/if wrap}
+
+@@@ multi @@@
+
+<div class="frow {row_class} {if error}has-error{/if error}">
+   <div class="form-group col-12">
+      <label for="{id1}" class="xxxfield-req-label">
+        {label}
+      </label>
+      <div class="form-row">
+         <div class="{class1}">
+            {form1}{append_html1}
+         </div>
+         <div class="{class2}">
+            {form2}{append_html2}
+         </div>
+      </div>
+      {if hint}<small class="form-text text-muted">{hint}</small>{/if hint}
+      <div class="err-field" role="alert">{if error1}<label id="{id1}-error" class="error" for="{id1}">{error1}</label>{/if error1}
+		{if error2}<label id="{id2}-error" class="inputerror" for="{id2}">{error2}</label>{/if error2}
+      </div>
+   </div>
+</div>
+
+@@@ yn @@@
+
+{if wrap}<div class="{wrap}">{/if wrap}
+<div class="frow form-check custom-form checkbox {if error}has-error{/if error}">
+  {form} 
+  <label for="{id}" class="control-label {if hint}has-hint{/if hint} {if labelclass}{labelclass}{/if labelclass}" {if hint}data-toggle="tooltip" title="{hint}"{/if hint}>
+    {label}
+  </label>
+  <div class="err-field" role="alert">{if error}<label id="{fname}[{id}]-error" class="inputerror" for="{fname}[{id}]">{error}</label>{/if error}</div>
+</div>
+{if wrap}</div>{/if wrap}
+
+@@@ display @@@
+
+<div class="form-row f-display">
+  <label class="col-12 col-sm-3 control-label">{label}</label>
+  <div class="col-12 col-sm-9"><p class="form-control-static">{form}</p></div>
+	{append_html}
+</div>
+
+@@@ display2 @@@
+
+<div class="frow form-group">
+	<div class="col-sm-2">
+		<div class="xlabel">{label}</div>
+    </div>
+    <div class="col-sm-3 {form_class}">{form}</div>{append_html}
+</div>
+
+@@@ icon @@@
+
+{if id}
+<svg class="icon icon-{id} {class}">
+  <use xlink:href="#{id}"></use>
+</svg>
+{/if id}
+
+@@@ xxtextarea @@@
+
+<div class="{row_class}">
+	<label for="{id}" class="col-3 control-label">{label}</label>
+	<div class="col-12">{form}{append_field}</div>
+</div>
+
+
+@@@ checkbox @@@
+
+{if wrap}<div class="{wrap}">{/if wrap}
+<div class="custom-form check checkbox {row_class} {if error}has-error{/if error}">
+	{form} 
+	<label for="{id}" class="control-label {if hint}has-hint{/if hint} {if labelclass}{labelclass}{/if labelclass}" {if hint}data-toggle="tooltip" title="{hint}"{/if hint}>
+		{label}
+	</label>
+	<div class="err-field" role="alert">{if error}<label id="{id}-error" class="inputerror" for="{id}">{error}</label>{/if error}</div>
+</div>
+{if wrap}</div>{/if wrap}
+
+@@@ radiosxxx @@@
+
+<label class="radio-inline">
+  <input type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1"> 1
+</label>
+
+
+
+@@@ multi2 @@@
+
+<div class="frow {row_class}">
+	<label for="{id1}" class="col-sm-3 control-label">{label}</label>
+<div class="col-sm-9"><div class="input-group input-group">
+  	
+   {form1}
+
+   {form2}
+
+	<div class="err-field">
+		{if error1}<label id="{id1}-error" class="inputerror" for="{id1}">{error1}</label>{/if error1}
+		{if error2}<label id="{id2}-error" class="inputerror" for="{id2}">{error2}</label>{/if error2}
+	</div>
+</div></div>
+</div>

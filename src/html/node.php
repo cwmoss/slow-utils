@@ -32,6 +32,7 @@ class node {
     public array $refs = [];
     public array $tpl_attr = [];
     public array $tpl_text = [];
+    public string $raw_content = "";
 
     public static function new(string $definition, string|tag|array|null $content = null): self {
         $tag = self::parse_definition($definition);
@@ -45,7 +46,7 @@ class node {
     public function set_by_token(token $token, $value): self {
         if ($token == token::attr) {
             $value = soup::words($value);
-            dbg("++ set attr", $value);
+            // dbg("++ set attr", $value);
         }
         match ($token) {
             token::cls => $this->class_add($value),
@@ -184,6 +185,11 @@ class node {
         return $this;
     }
 
+    public function raw_content(string $content): self {
+        $this->raw_content = $content;
+        return $this;
+    }
+
     public function tagname(string $tag): self {
         $this->tagname = $tag;
         return $this;
@@ -201,12 +207,20 @@ class node {
     public function class_add(array|string $class, mixed $condition = null) {
         if (is_string($class)) $class = soup::words($class);
         if (is_null($condition) || $condition)
-            $this->class = array_merge($this->class, $class);
+            $this->class = array_unique(array_merge($this->class, $class));
         return $this;
     }
 
     public function attr(string $name, bool|string|null $value = true): self {
-        $this->attrs[$name] = $value;
+        if ($name == 'id') {
+            $this->id = $value;
+        } elseif ($name == 'class') {
+            $this->class_add($value);
+        } elseif (str_starts_with($name, 'data-')) {
+            $this->data(substr($name, 5), $value);
+        } else {
+            $this->attrs[$name] = $value;
+        }
         return $this;
     }
 
@@ -275,6 +289,7 @@ class node {
 
 
     public function get_content(): string {
+        if ($this->raw_content) return $this->raw_content;
         return $this->render_array($this->children);
     }
 
@@ -326,13 +341,13 @@ class node {
         return sprintf('</%s>', $name);
     }
 
-    public static function tag(string $name, array $attrs, string $content = "", node $root): string {
+    public static function tag(string $name, array $attrs, string $content = "", ?node $root = null): string {
         $start = self::tag_open($name, $attrs, $root);
         return sprintf('%s%s%s', $start, $content, self::tag_close($name));
     }
 
     public function render_array(array $elements): string {
-        return join("", array_map(fn ($el) => (string) $el, $elements));
+        return join("", array_map(fn ($el) => is_string($el) ? self::h($el) : (string) $el, $elements));
     }
 
     public function template() {
@@ -341,14 +356,14 @@ class node {
         return function (array $data) use ($tpl, $attrs) {
             $repl = [];
             foreach ($attrs as $defer) {
-                dbg("++defer", $defer->var_name);
+                // dbg("++defer", $defer->var_name);
                 [$k, $v] = $defer->replacement($data[$defer->var_name] ?? null);
                 $repl[$k] = $v;
             }
             foreach ($data as $k => $v) {
                 $repl['{' . strtolower($k) . '}'] = $v;
             }
-            print_r($repl);
+            // print_r($repl);
             $text = str_replace(array_keys($repl), $repl, $tpl);
             return $text;
         };

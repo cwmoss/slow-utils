@@ -27,7 +27,7 @@ class tiny {
 
     public function display($data) {
         if (is_null($this->c)) return false;
-        if (!is_array($this->c)) $this->c = self::compile($str);
+        if (!is_array($this->c)) $this->c = self::compile($this->c);
         return self::resolve($this->c, $data);
     }
 
@@ -53,7 +53,10 @@ class tiny {
         return self::resolve($tpl, $data);
     }
 
-
+    static function add_snippets($text) {
+        $snippets = self::split_boundary($text);
+        self::$cache = $snippets + self::$cache;
+    }
 
     static function snippet_exists($name) {
         return isset(self::$cache[$name]);
@@ -94,12 +97,12 @@ class tiny {
         return call_user_func_array('sprintf', $print);
     }
 
-    static function compile($tpl, $level, $lft, $rgt) {
+    static function compile($tpl, $level = 0, $lft = '{', $rgt = '}') {
         # print "compiling\n";
         # if(!$level) print "compiling\n";
         $compiled = [];
         $count = 0;
-        $tpl = preg_replace_callback("!$lft(if|not|each)\s+([@\w]+)$rgt(.*?)$lft/\\1\s+\\2$rgt!sm", function ($mat) use (&$count, &$compiled, &$blocks) {
+        $tpl = preg_replace_callback("!$lft(if|not|each)\s+([@\w]+)$rgt(.*?)$lft/\\1\s+\\2$rgt!sm", function ($mat) use (&$count, &$compiled) {
             $count++;
             $compiled[] = [[$mat[1], $mat[2]], $mat[3]];
             return '%' . $count . '$s';
@@ -120,6 +123,30 @@ class tiny {
             if (is_array($c)) $c[1] = self::compile($c[1], $level + 1, $lft, $rgt);
         }
         return [$tpl, $compiled];
+    }
+
+    /**
+        split text on named boundary to associative array
+        ex:
+
+        @@@ intro @@@
+
+        everything until the end or next boundary will
+        go into the key "intro"
+
+        @@@   chapter one @@@
+
+        this goes into the key "chapter one"
+
+     */
+    public static function split_boundary(string $str, string $boundary = '@@@') {
+        $boundary = preg_quote($boundary, '!');
+        $mat = preg_split("!^\s*$boundary\s*([-\w]+)\s*$boundary\s*$!ms", $str, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+        $splitted = [];
+        for ($i = 0; $i < count($mat);) {
+            $splitted[$mat[$i++]] =  $mat[$i++];
+        }
+        return $splitted;
     }
 }
 

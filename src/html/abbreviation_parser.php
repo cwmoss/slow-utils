@@ -90,7 +90,7 @@ class abbreviation_parser {
         }
         // dbg("++status-end", $word, $tag, $type);
         if ($tag || $word) {
-            dbg("last word", $word);
+            // dbg("last word", $word);
             self::handle_word($root, $tag, $type, $word, $ref);
             self::handle_insert($root, $current_node, $tag, $mode, $ref);
         }
@@ -106,7 +106,7 @@ class abbreviation_parser {
         if ($mode == 'sibling') {
             $current_node->insert_after($tag);
         } else {
-            dbg("++ last", $tag);
+            // dbg("++ last", $tag);
             $current_node->insert_append($tag);
         }
         $current_node = $tag;

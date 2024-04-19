@@ -81,3 +81,20 @@ if (!function_exists('vl')) {
         error_log(ob_get_clean());
     }
 }
+
+function benchmark_time($start) {
+    $elapsed = microtime(true) - $start;
+    $time = [
+        'time' => $elapsed,
+        'ms' => (int)($elapsed * 1000),
+        'microsec' => (int)($elapsed * 1000 * 1000),
+        'print' => null
+    ];
+    $time['print'] = $time['ms'] ? $time['ms'] . ' ms' : $time['microsec'] . ' μs';
+    return $time;
+}
+
+function hum_size($size) {
+    $unit = array('b', 'kb', 'mb', 'gb', 'tb', 'pb');
+    return @round($size / pow(1024, ($i = floor(log($size, 1024)))), 2) . ' ' . $unit[$i];
+}
