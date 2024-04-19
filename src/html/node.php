@@ -18,15 +18,17 @@ class node {
         public ?self $parent = null,
         public string $id = "",
         string|array $class = [],
-        public array $attrs = [],
+        array $attrs = [],
         public array $data = [],
         self|array|string|null $children = null,
     ) {
         $this->content($children);
         $this->class_add($class);
+        $this->attrs($attrs);
     }
 
     public ?self $root = null;
+    public array $attrs = [];
     public array $class = [];
     public array $children = [];
     public array $refs = [];
@@ -153,7 +155,7 @@ class node {
         return $this;
     }
 
-    public function wrap(string|array $tags): self {
+    public function wrap(string|self $tags): self {
         if (is_string($tags)) {
             $tags = abbreviation_parser::parse($tags, false);
             $parent = $this->parent;
@@ -162,6 +164,9 @@ class node {
             //            $this->wrap = array_map(fn ($t) => tag::new($t), $tags);
         } else {
             //            $this->wrap = $tags;
+            $parent = $this->parent_or_root();
+            $tags->insert_append($this);
+            $parent->replace($this, $tags->parent_or_root());
         }
 
         return $this;
@@ -318,7 +323,7 @@ class node {
             }
             if (is_bool($avalue)) {
                 if ($avalue) {
-                    $attr[] = $aname;
+                    $attr[] = " " . $aname;
                 }
             } else {
                 $attr[] = sprintf(' %s="%s"', $aname, self::h($avalue));

@@ -33,4 +33,24 @@ final class NodeTest extends TestCase {
         $this->assertSame('<form><input type="email"></form>', $tpl(['is_disabled' => false, 'type' => 'email']));
         $this->assertSame('<form><input type=""></form>', $tpl(['is_disabled' => false]));
     }
+
+    function testWrap() {
+        $node = new node(id: "joe", children: "hey");
+        $wrapped = $node->wrap(new node(id: "hey"));
+        $this->assertSame('<div id="hey"><div id="joe">hey</div></div>', (string) $wrapped->parent());
+    }
+
+    function testEscape() {
+        $node = new node(children: "<h1>ok</h1>");
+        $this->assertSame('<div>&lt;h1&gt;ok&lt;/h1&gt;</div>', (string) $node);
+        $node->raw_content('<h1>ok</h1>');
+        $this->assertSame('<div><h1>ok</h1></div>', (string) $node);
+    }
+
+    function testAttrs() {
+        $node = new node('h1', attrs: ['class' => 'red  red ', 'id' => 'first', 'toggle' => true]);
+        $this->assertSame('<h1 id="first" class="red" toggle></h1>', (string) $node);
+        $this->assertSame('first', $node->id);
+        $this->assertSame(['red'], $node->class);
+    }
 }
