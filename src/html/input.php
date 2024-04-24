@@ -33,9 +33,19 @@ class input {
         return new node('input', attrs: $attrs);
     }
 
-    public static function selectbox(string $name, array $options = [], string $current_value, array $attrs = [], array $options_opts = []) {
+    public static function selectbox(
+        string $name,
+        array $options = [],
+        string $current_value,
+        ?string $nullentry = null,
+        array $options_opts = [],
+        array $attrs = []
+    ) {
         $attrs = ['name' => $name] + $attrs;
         $tag = new node('select', attrs: $attrs);
+        if ($nullentry) {
+            $options_opts['nullentry'] = $nullentry;
+        }
         $tag->raw_content(options::for_select($options, $current_value, $options_opts));
         return $tag;
     }
