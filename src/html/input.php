@@ -60,48 +60,4 @@ class input {
         }
         return $tag;
     }
-
-    public static function form_field(string $name, string $type = "text", $value = null, ?string $id = null): tag {
-        $fname = sprintf($this->basename, $name);
-        $modelvalue = (string) $this->model->$name ?? "";
-        if (!$id)
-            $id = $type == 'radio' ? self::id($fname, $value) : self::id($fname);
-
-        $tag = match ($type) {
-            'select' => new tag($type, $id, attrs: ['name' => $fname]),
-            'textarea' => new tag($type, $id, attrs: ['name' => $fname], content: $modelvalue),
-            'radio', 'checkbox' => (new tag('input', $id, attrs: ['name' => $fname, 'type' => $type, 'value' => $value]))
-                ->attr("checked", $modelvalue == $value),
-            default => new tag('input', $id, attrs: ['name' => $fname, 'type' => $type, 'value' => $modelvalue])
-        };
-
-        if ($type == 'checkbox') {
-            $hidden = new tag('input', attrs: ['type' => 'hidden', 'name' => $fname, 'value' => "0"]);
-            $tag->before($hidden);
-        }
-
-        return $tag;
-    }
-
-    public function xxform_field(string $name, string $type = "text", $value = null, ?string $id = null): tag {
-        $fname = sprintf($this->basename, $name);
-        $modelvalue = (string) $this->model->$name ?? "";
-        if (!$id)
-            $id = $type == 'radio' ? self::id($fname, $value) : self::id($fname);
-
-        $tag = match ($type) {
-            'select' => new tag($type, $id, attrs: ['name' => $fname]),
-            'textarea' => new tag($type, $id, attrs: ['name' => $fname], content: $modelvalue),
-            'radio', 'checkbox' => (new tag('input', $id, attrs: ['name' => $fname, 'type' => $type, 'value' => $value]))
-                ->attr("checked", $modelvalue == $value),
-            default => new tag('input', $id, attrs: ['name' => $fname, 'type' => $type, 'value' => $modelvalue])
-        };
-
-        if ($type == 'checkbox') {
-            $hidden = new tag('input', attrs: ['type' => 'hidden', 'name' => $fname, 'value' => "0"]);
-            $tag->before($hidden);
-        }
-
-        return $tag;
-    }
 }

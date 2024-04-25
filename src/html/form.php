@@ -9,7 +9,9 @@ class form {
     public function __construct(
         public object $model,
         public string $basename = "%s",
-        public string $validator_element = "bob-validator"
+        public string $validator_element = "bob-validator",
+        public string $error_class = "invalid-feedback server",
+        public string $error_input_class = 'is-invalid'
     ) {
         $this->set_remaining_errors($model);
     }
@@ -44,47 +46,100 @@ class form {
         return "</{$this->validator_element}>";
     }
 
+    public function form_node(node $field, string $label_text, string $error_text): node {
+        $error_id = $field->id . '-error';
+        $label = new node('label', children: $label_text, attrs: ['for' => $field->id]);
+        $error = new node(class: $this->error_class, id: $error_id, children: $error_text);
+        $field->attr('aria-describedby', $error_id)->attr('aria-invalid', $error_text ? 'true' : 'false');
+        return new node(children: [$label, $field, $error]);
+    }
+
     public function base_attrs(string $name, array $attrs = [], ?string $extended_id = null): array {
         $fname = sprintf($this->basename, $name);
         $id = self::id($fname, $extended_id);
         return ['name' => $fname, 'id' => $id] + $attrs;
     }
 
-    public function input(string $name, string $label, string $type = "text", array $attrs = []): form_item {
+    public function input(string $name, string $label, string $type = "text", array $attrs = []): node {
         $err = $this->get_and_burn_errors_on($name);
         $attrs = $this->base_attrs($name, $attrs);
         $field = input::input($attrs['name'], $this->model->$name, $type, $attrs);
-        return new form_item($field, $label, $err);
+        return $this->form_node($field, $label, $err);
     }
 
-    public function text(string $name, string $label, ?string $size = null, array $attrs = []): form_item {
+    public function text(string $name, string $label, ?string $size = null, array $attrs = []): node {
         $err = $this->get_and_burn_errors_on($name);
         $attrs = $this->base_attrs($name, $attrs);
         $field = input::textarea($attrs['name'], $this->model->$name, $size, $attrs);
-        return new form_item($field, $label, $err);
+        return $this->form_node($field, $label, $err);
     }
 
-    public function checkbox(string $name, string $label, $value, $unchecked_value = "0", array $attrs = []): form_item {
+    public function checkbox(string $name, string $label, $value, $unchecked_value = "0", array $attrs = []): node {
         $err = $this->get_and_burn_errors_on($name);
         $attrs = $this->base_attrs($name, $attrs);
         $field = input::checkbox($attrs['name'], $value, $this->model->$name, $attrs);
         $field->insert_before(input::hidden($attrs['name'], $unchecked_value));
-        return new form_item($field, $label, $err);
+        return $this->form_node($field, $label, $err);
     }
 
-    public function selectbox(string $name, string $label, array $items, array $attrs = [], array $options_opts = []): form_item {
+    public function selectbox(string $name, string $label, array $items, ?string $nullentry = null, array $options_opts = [], array $attrs = []): node {
         $err = $this->get_and_burn_errors_on($name);
         $attrs = $this->base_attrs($name, $attrs);
 
-        $field = input::selectbox($attrs['name'], $items, $this->model->$name, $attrs, $options_opts);
+        $field = input::selectbox($attrs['name'], $items, $this->model->$name, $nullentry, $options_opts, $attrs);
         #$field = $this->form_field($name, 'select')
         #    ->content(options::for_select($items, (string) $this->model->$name, $opts));
 
-        $inp = new form_item($field, $label, $err);
+        $inp = $this->form_node($field, $label, $err);
         return $inp;
     }
 
-    public function radios(string $name, array $items, array $attrs = []): node {
+    public function radio_group(
+        string $name,
+        array $items,
+        string $style = 'wrapped',
+        array $label_attrs = [],
+        array $input_attrs = [],
+        array $item_attrs = [],
+        $container = null
+    ): node {
+        $err = $this->get_and_burn_errors_on($name);
+        $error_id = $name . '-error';
+
+        $nodes = [];
+        foreach ($items as $value => $label) {
+            $field = input::radio($name, $value, $this->model->$name);
+            $field->attrs($input_attrs);
+            if ($item_attrs[$value] ?? null) {
+                $field->attrs($item_attrs[$value]);
+            }
+            if ($err) {
+                $field->class_add($this->error_input_class);
+            }
+            $field
+                ->attr('aria-describedby', $error_id)
+                ->attr('aria-invalid', $err ? 'true' : 'false');
+
+            $label_el = new node("label", id: $field->id, attrs: $label_attrs, children: $label);
+            if ($style == 'wrapped') {
+                $label_el->content([$field, $label]);
+                $nodes[] = $label_el;
+            } else {
+                $nodes[] = $label_el;
+                $nodes[] = $field;
+            }
+        }
+        $nodes[] = new node(class: $this->error_class, id: $error_id, children: $err);
+
+        if (!$container) $container = new node("");
+        else {
+            if ($err) $container->class_add("is-invalid");
+        }
+        $container->content($nodes);
+        return $container;
+    }
+
+    public function xradios(string $name, array $items, array $attrs = []): node {
         $err = $this->get_and_burn_errors_on($name);
 
         $group = new node;
