@@ -20,7 +20,7 @@ class form {
         foreach ($model->errors->cols as $name => $errs) {
             $this->remaining_errors[$name] = array_unique($model->errors->on($name));
         }
-        $base = $model->errors->base;
+        $base = $model->errors->on_base();
         if ($base) $$this->remaining_errors['_'] = array_unique($base);
     }
 
