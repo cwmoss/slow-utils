@@ -13,6 +13,7 @@ class form {
         public string $error_class = "invalid-feedback server",
         public string $error_input_class = 'is-invalid'
     ) {
+        dbg("+++ form model", $model);
         $this->set_remaining_errors($model);
     }
 
@@ -21,7 +22,11 @@ class form {
             $this->remaining_errors[$name] = array_unique($model->errors->on($name));
         }
         $base = $model->errors->on_base();
-        if ($base) $$this->remaining_errors['_'] = array_unique($base);
+        if ($base) {
+            // uralt fehler: base kann auch col:"", msg:"..." objekte enthalten
+            $base = array_map(fn ($err) => is_object($err) ? $err->msg : $err, $base);
+            $this->remaining_errors['_'] = array_unique($base);
+        }
     }
 
     public function get_and_burn_errors_on(string $fieldname = '_', string $separator = '<br>'): string {
@@ -34,7 +39,12 @@ class form {
     }
 
     public function get_remaining_errors(string $separator = '<br>'): string {
-        return join($separator, $this->remaining_errors);
+        dbg("++ remaining +++", $this->remaining_errors);
+        return join($separator, array_map(
+            fn ($field) =>
+            join($separator, $field),
+            $this->remaining_errors
+        ));
     }
 
     public function validator(array|string $fields): node {
@@ -56,7 +66,11 @@ class form {
 
     public function base_attrs(string $name, array $attrs = [], ?string $extended_id = null): array {
         $fname = sprintf($this->basename, $name);
-        $id = self::id($fname, $extended_id);
+        if (isset($attrs['id']) && $attrs['id']) {
+            $id = $attrs['id'];
+        } else {
+            $id = self::id($fname, $extended_id);
+        }
         return ['name' => $fname, 'id' => $id] + $attrs;
     }
 
@@ -67,7 +81,7 @@ class form {
         return $this->form_node($field, $label, $err);
     }
 
-    public function text(string $name, string $label, ?string $size = null, array $attrs = []): node {
+    public function textarea(string $name, string $label, ?string $size = null, array $attrs = []): node {
         $err = $this->get_and_burn_errors_on($name);
         $attrs = $this->base_attrs($name, $attrs);
         $field = input::textarea($attrs['name'], $this->model->$name, $size, $attrs);
@@ -78,8 +92,10 @@ class form {
         $err = $this->get_and_burn_errors_on($name);
         $attrs = $this->base_attrs($name, $attrs);
         $field = input::checkbox($attrs['name'], $value, $this->model->$name, $attrs);
-        $field->insert_before(input::hidden($attrs['name'], $unchecked_value));
-        return $this->form_node($field, $label, $err);
+        $node = $this->form_node($field, $label, $err);
+        $node->insert_prepend(input::hidden($attrs['name'], $unchecked_value));
+        // $field = new node("", children: []);
+        return $node;
     }
 
     public function selectbox(string $name, string $label, array $items, ?string $nullentry = null, array $options_opts = [], array $attrs = []): node {
@@ -97,6 +113,7 @@ class form {
     public function radio_group(
         string $name,
         array $items,
+        string $legend = "",
         string $style = 'wrapped',
         array $label_attrs = [],
         array $input_attrs = [],
@@ -104,11 +121,14 @@ class form {
         $container = null
     ): node {
         $err = $this->get_and_burn_errors_on($name);
+        $attrs = $this->base_attrs($name, $input_attrs);
         $error_id = $name . '-error';
 
         $nodes = [];
         foreach ($items as $value => $label) {
-            $field = input::radio($name, $value, $this->model->$name);
+            $field = input::radio($attrs['name'], $value, $this->model->$name);
+            dbg("radio+++", $field);
+
             $field->attrs($input_attrs);
             if ($item_attrs[$value] ?? null) {
                 $field->attrs($item_attrs[$value]);
@@ -120,18 +140,20 @@ class form {
                 ->attr('aria-describedby', $error_id)
                 ->attr('aria-invalid', $err ? 'true' : 'false');
 
-            $label_el = new node("label", id: $field->id, attrs: $label_attrs, children: $label);
+            $label_el = new node("label", id: $field->id, attrs: $label_attrs);
             if ($style == 'wrapped') {
                 $label_el->content([$field, $label]);
                 $nodes[] = $label_el;
             } else {
-                $nodes[] = $label_el;
+                $nodes[] = $label_el->content($label);
                 $nodes[] = $field;
             }
         }
         $nodes[] = new node(class: $this->error_class, id: $error_id, children: $err);
-
-        if (!$container) $container = new node("");
+        if ($legend) {
+            array_unshift($nodes, (new node('legend'))->raw_content($legend));
+        }
+        if (!$container) $container = new node("fieldset");
         else {
             if ($err) $container->class_add("is-invalid");
         }

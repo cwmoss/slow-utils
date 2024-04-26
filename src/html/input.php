@@ -13,9 +13,9 @@ autocapitalize, autocomplete, autofocus, disabled, placeholder, readonly, requir
 
 class input {
 
-
-    public static function input(string $name, mixed $value, string $type = 'text', array $attrs = []) {
+    public static function input(string $name, mixed $value, string $type = 'text', array $attrs = []): node {
         $attrs = ['type' => $type, 'name' => $name, 'value' => $value] + $attrs;
+        dbg("++ input attrs", $attrs);
         return new node('input', attrs: $attrs);
     }
 
@@ -23,24 +23,24 @@ class input {
         return self::input($name, $value, 'hidden', $attrs);
     }
 
-    public static function checkbox(string $name, mixed $value, string $current_value, array $attrs = []) {
+    public static function checkbox(string $name, mixed $value, mixed $current_value, array $attrs = []): node {
         $tag = self::input($name, $value, 'checkbox', $attrs)->attr("checked", $current_value == $value);
         return $tag;
     }
 
-    public static function radio(string $name, mixed $value, string $current_value, array $attrs = []) {
+    public static function radio(string $name, mixed $value, mixed $current_value, array $attrs = []): node {
         $tag = self::input($name, $value, 'radio', $attrs)->attr("checked", $current_value == $value);
-        return new node('input', attrs: $attrs);
+        return $tag;
     }
 
     public static function selectbox(
         string $name,
         array $options = [],
-        string $current_value,
+        mixed $current_value,
         ?string $nullentry = null,
         array $options_opts = [],
         array $attrs = []
-    ) {
+    ): node {
         $attrs = ['name' => $name] + $attrs;
         $tag = new node('select', attrs: $attrs);
         if ($nullentry) {
@@ -50,11 +50,11 @@ class input {
         return $tag;
     }
 
-    public static function textarea(string $name, string $current_value, ?string $size = null, array $attrs = []) {
+    public static function textarea(string $name, mixed $current_value, ?string $size = null, array $attrs = []): node {
         $attrs = ['name' => $name] + $attrs;
         $tag = new node('textarea', attrs: $attrs, children: $current_value);
         if ($size) {
-            [$rows, $cols] = explode("x", $size);
+            [$cols, $rows] = explode("x", $size);
             if ($rows) $tag->attr('rows', $rows);
             if ($cols) $tag->attr('cols', $cols);
         }
