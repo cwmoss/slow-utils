@@ -13,7 +13,7 @@ class form {
         public string $error_class = "invalid-feedback server",
         public string $error_input_class = 'is-invalid'
     ) {
-        dbg("+++ form model", $model);
+        // dbg("+++ form model", $model);
         $this->set_remaining_errors($model);
     }
 
@@ -24,7 +24,7 @@ class form {
         $base = $model->errors->on_base();
         if ($base) {
             // uralt fehler: base kann auch col:"", msg:"..." objekte enthalten
-            $base = array_map(fn ($err) => is_object($err) ? $err->msg : $err, $base);
+            $base = array_map(fn($err) => is_object($err) ? $err->msg : $err, $base);
             $this->remaining_errors['_'] = array_unique($base);
         }
     }
@@ -39,9 +39,9 @@ class form {
     }
 
     public function get_remaining_errors(string $separator = '<br>'): string {
-        dbg("++ remaining +++", $this->remaining_errors);
+        // dbg("++ remaining +++", $this->remaining_errors);
         return join($separator, array_map(
-            fn ($field) =>
+            fn($field) =>
             join($separator, $field),
             $this->remaining_errors
         ));
@@ -127,7 +127,7 @@ class form {
         $nodes = [];
         foreach ($items as $value => $label) {
             $field = input::radio($attrs['name'], $value, $this->model->$name);
-            dbg("radio+++", $field);
+            // dbg("radio+++", $field);
 
             $field->attrs($input_attrs);
             if ($item_attrs[$value] ?? null) {

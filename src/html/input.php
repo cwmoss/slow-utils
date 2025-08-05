@@ -15,7 +15,7 @@ class input {
 
     public static function input(string $name, mixed $value, string $type = 'text', array $attrs = []): node {
         $attrs = ['type' => $type, 'name' => $name, 'value' => $value] + $attrs;
-        dbg("++ input attrs", $attrs);
+        // dbg("++ input attrs", $attrs);
         return new node('input', attrs: $attrs);
     }
 
